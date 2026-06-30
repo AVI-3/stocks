@@ -1,0 +1,27 @@
+NASDAQ Stock Price Dataset Builder - Plan of Action
+
+Phase 1: Exploration & Prototyping
+1. Analyze Endpoint: Understand the URL structure, query parameters, and required HTTP headers for the api.nasdaq.com historical quote endpoint.
+   - Endpoint: https://api.nasdaq.com/api/quote/{symbol}/historical
+   - Parameters: assetclass=stocks, fromdate=YYYY-MM-DD, todate=YYYY-MM-DD, limit=10000
+2. Identify Headers: Nasdaq's API employs anti-bot protection. Construct HTTP headers (e.g., User-Agent, Accept, Referer) that successfully mimic browser requests.
+3. Write Prototype: Create a lightweight scratch script to fetch data for a single test ticker (e.g., AAPL) and inspect the returned JSON response format.
+
+Phase 2: Design and Implement the Collection Script
+Develop a robust CLI-based Python script, build_dataset.py, in the code/ workspace directory.
+1. Parameters & Inputs:
+   - Tickers: Accept a list of tickers as CLI arguments or read from a configuration list (e.g., POPULAR).
+   - Date range: Default to the past year, or accept standard from-date and to-date arguments.
+2. Resilience & Rate Limiting:
+   - Request throttling: Add a polite delay (e.g., 2-5 seconds, randomly jittered) between tickers to respect NASDAQ's servers and prevent IP banning.
+   - Retry logic: Implement exponential backoff for failed network requests or transient errors.
+3. Data Parsing & Formatting:
+   - Parse historical data from the JSON response structure (specifically target the tables/rows block containing Date, Close/Last, Volume, Open, High, and Low).
+   - Clean columns (e.g., stripping currency symbols like '$' and converting values to floats/ints).
+4. Storage:
+   - Save dataset as clean CSV files in a structured downloads/ subdirectory.
+
+Phase 3: Testing and Execution
+1. Dry-Run Testing: Test the scraper with a small list of tickers over a short period.
+2. Execute Full Collection: Run the script for all targeted tickers and date ranges.
+3. Validate Output: Verify data completeness, check for missing values, and display summary statistics.

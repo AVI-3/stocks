@@ -1,0 +1,481 @@
+---
+title: "NASDAQ Historical Stock Market Analytics"
+author: "NASDAQ Dataset Builder"
+date: today
+format:
+  html:
+    theme: slate
+    page-layout: full
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+execute:
+  echo: false
+  warning: false
+---
+
+<!-- Premium Custom Styling -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+  
+  body {
+    background-color: #0b0f19;
+    color: #e2e8f0;
+    font-family: 'Outfit', 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  
+  .title-block-header {
+    background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .quarto-title .title {
+    background: linear-gradient(to right, #00f2fe, #4facfe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 2.8rem;
+    font-weight: 800;
+  }
+  
+  /* Glassmorphism Cards */
+  .custom-card {
+    background: rgba(22, 28, 45, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 1.75rem;
+    margin-bottom: 2rem;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+  
+  .insight-card {
+    border-left: 4px solid #38bdf8;
+    background: rgba(56, 189, 248, 0.04);
+  }
+  
+  /* Tables styling */
+  .table-responsive {
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+  
+  table.table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    background-color: transparent !important;
+  }
+  
+  table.table th {
+    background-color: rgba(30, 41, 59, 0.9) !important;
+    color: #f1f5f9 !important;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px !important;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15) !important;
+  }
+  
+  table.table td {
+    padding: 12px 16px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    font-size: 0.95rem;
+    color: #cbd5e1 !important;
+    vertical-align: middle !important;
+  }
+  
+  table.table tr:hover td {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    color: #ffffff !important;
+  }
+  
+  /* Badges */
+  .badge-ticker {
+    font-weight: 800;
+    font-size: 0.85rem;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+  
+  .trend-up {
+    color: #10b981 !important;
+    font-weight: 600;
+  }
+  
+  .trend-down {
+    color: #ef4444 !important;
+    font-weight: 600;
+  }
+  
+  /* Tabs styling */
+  .nav-tabs {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    margin-bottom: 1.5rem !important;
+    gap: 0.5rem;
+  }
+  
+  .nav-tabs .nav-link {
+    color: #94a3b8 !important;
+    background-color: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    padding: 0.75rem 1.25rem !important;
+    transition: all 0.25s !important;
+  }
+  
+  .nav-tabs .nav-link:hover {
+    color: #f1f5f9 !important;
+    background-color: rgba(255, 255, 255, 0.03) !important;
+  }
+  
+  .nav-tabs .nav-link.active {
+    color: #38bdf8 !important;
+    background-color: rgba(56, 189, 248, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    border-bottom-color: #0b0f19 !important;
+    box-shadow: 0 -4px 10px rgba(56, 189, 248, 0.05);
+  }
+</style>
+
+## Overview
+
+This report provides a dynamic, interactive dashboard that aggregates 10 years of historical stock data from NASDAQ. It quantifies the speed, frequency, and magnitude of price changes (volatility) for ten major watchlisted companies, offering professional, sector-focused financial insights.
+
+---
+
+## Price Volatility & Rapidity Analysis
+
+"Rapidity of price change" measures how fast and widely stock values fluctuate. Below is the historical ranking of the watchlisted companies, sorted from **most volatile** (fastest changing) to **most stable** (slowest changing).
+
+::: {.custom-card}
+### Rapidity & Volatility Ranking Table
+::: {.table-responsive}
+```{python}
+#| results: asis
+#| echo: false
+
+import os
+import pandas as pd
+
+summary_file = "downloads/volatility_summary.csv"
+if os.path.exists(summary_file):
+    df_vol = pd.read_csv(summary_file)
+    
+    # Rename columns slightly for clean table headers
+    df_vol = df_vol.rename(columns={
+        "Avg Daily Move (%)": "Avg. Daily Move",
+        "Intraday Swing (%)": "Avg. Intraday Swing",
+        "Annualized Volatility (%)": "Annualized Volatility",
+        "Max Daily Gain (%)": "Max Daily Gain",
+        "Max Daily Loss (%)": "Max Daily Loss"
+    })
+    
+    # Format values as percentages with clean signs
+    df_vol["Avg. Daily Move"] = df_vol["Avg. Daily Move"].map("{:.2f}%".format)
+    df_vol["Avg. Intraday Swing"] = df_vol["Avg. Intraday Swing"].map("{:.2f}%".format)
+    df_vol["Annualized Volatility"] = df_vol["Annualized Volatility"].map("{:.2f}%".format)
+    df_vol["Max Daily Gain"] = df_vol["Max Daily Gain"].map("{:+.2f}%".format)
+    df_vol["Max Daily Loss"] = df_vol["Max Daily Loss"].map("{:+.2f}%".format)
+    
+    # Render table manually with custom CSS classes applied
+    print("<table class='table table-striped table-hover'>")
+    print("<thead><tr>")
+    print("<th>Ticker</th><th>Company Name</th><th>Avg. Daily Move</th><th>Avg. Intraday Swing</th><th>Annualized Volatility</th><th>Max Daily Gain</th><th>Max Daily Loss</th>")
+    print("</tr></thead><tbody>")
+    
+    for idx, row in df_vol.iterrows():
+        print("<tr>")
+        print(f"<td><span class='badge-ticker'>{row['Ticker']}</span></td>")
+        print(f"<td><strong>{row['Company']}</strong></td>")
+        print(f"<td>{row['Avg. Daily Move']}</td>")
+        print(f"<td>{row['Avg. Intraday Swing']}</td>")
+        print(f"<td style='color:#38bdf8; font-weight:700;'>{row['Annualized Volatility']}</td>")
+        print(f"<td class='trend-up'>{row['Max Daily Gain']}</td>")
+        print(f"<td class='trend-down'>{row['Max Daily Loss']}</td>")
+        print("</tr>")
+        
+    print("</tbody></table>")
+else:
+    print("<div class='alert alert-warning'>Volatility summary file not found. Run analyze_volatility.py first.</div>")
+```
+:::
+:::
+
+### Visualizing Volatility Profiles
+
+To compare the volatility profiles of each company, we plot **Annualized Volatility** alongside **Average Intraday Price Swings**. This chart ranks the companies by overall price velocity and displays how much price action happens *within* a single trading session.
+
+::: {.custom-card}
+```{python}
+#| label: volatility-plot
+#| echo: false
+
+import os
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+summary_file = "downloads/volatility_summary.csv"
+if os.path.exists(summary_file):
+    df = pd.read_csv(summary_file)
+    # Sort ascending for horizontal bar chart rendering from top (highest) to bottom
+    df_sorted = df.sort_values(by="Annualized Volatility (%)", ascending=True)
+    
+    # Create a side-by-side or dual horizontal bar chart
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=("Annualized Volatility (Overall Speed)", "Avg. Intraday Swing (Day-Trading Spans)"),
+        shared_yaxes=True,
+        horizontal_spacing=0.08
+    )
+    
+    # Color mapping gradient for the bars
+    # Low volatility (CSCO ~25%) -> Cool Teal, High volatility (TSLA ~59%) -> Hot Crimson
+    color_values = df_sorted["Annualized Volatility (%)"]
+    
+    # Add Annualized Volatility Bar
+    fig.add_trace(
+        go.Bar(
+            y=df_sorted["Company"],
+            x=df_sorted["Annualized Volatility (%)"],
+            orientation='h',
+            name="Annualized Volatility",
+            marker=dict(
+                color=color_values,
+                colorscale="bluered",
+                line=dict(color='rgba(255, 255, 255, 0.1)', width=1)
+            ),
+            hovertemplate="Company: %{y}<br>Annualized Volatility: %{x:.2f}%<extra></extra>",
+            text=df_sorted["Annualized Volatility (%)"].map("{:.1f}%".format),
+            textposition='inside',
+            insidetextanchor='end'
+        ),
+        row=1, col=1
+    )
+    
+    # Add Intraday Swing Bar
+    fig.add_trace(
+        go.Bar(
+            y=df_sorted["Company"],
+            x=df_sorted["Intraday Swing (%)"],
+            orientation='h',
+            name="Intraday Swing",
+            marker=dict(
+                color=df_sorted["Intraday Swing (%)"],
+                colorscale="portland",
+                line=dict(color='rgba(255, 255, 255, 0.1)', width=1)
+            ),
+            hovertemplate="Company: %{y}<br>Intraday Swing: %{x:.2f}%<extra></extra>",
+            text=df_sorted["Intraday Swing (%)"].map("{:.1f}%".format),
+            textposition='inside',
+            insidetextanchor='end'
+        ),
+        row=1, col=2
+    )
+    
+    fig.update_layout(
+        template="plotly_dark",
+        height=500,
+        margin=dict(l=10, r=20, t=40, b=40),
+        showlegend=False,
+        plot_bgcolor="#0f172a",
+        paper_bgcolor="#0b0f19",
+        yaxis=dict(
+            tickfont=dict(size=12, family="Outfit"),
+        ),
+        xaxis=dict(
+            title="Volatility (%)",
+            gridcolor="rgba(255, 255, 255, 0.05)",
+            ticksuffix="%"
+        ),
+        xaxis2=dict(
+            title="Swing (%)",
+            gridcolor="rgba(255, 255, 255, 0.05)",
+            ticksuffix="%"
+        )
+    )
+    
+    fig.show()
+else:
+    print("<div class='alert alert-warning'>Volatility summary file not found.</div>")
+```
+:::
+
+::: {.custom-card .insight-card}
+### Educated Volatility Insights & Trend Analysis
+
+An analysis of the 10-year volatility data reveals several structural trends:
+
+1. **The Beta/Volatility Hierarchy**:
+   * **High Beta Growth (TSLA, AMD)**: At the top of the spectrum sit **Tesla** and **AMD** with annualized volatilities exceeding **56-59%**. These companies are characterized by rapid product cycles (semiconductor node shifts, electric vehicle scaling), intense competition, and high valuation multiples which make their prices highly sensitive to forward-looking growth estimates and macroeconomic liquidity.
+   * **Growth Tech (NFLX, QCOM, META, AMZN)**: These companies sit in a middle band of **32-41%** volatility. While they are massive cash-flow engines, their stock prices are heavily impacted by discrete growth parameters (Netflix subscriber updates, Meta ad spend, Amazon margins).
+   * **Enterprise & Diversified Value (SBUX, AAPL, MSFT, CSCO)**: Sitting below **30%** volatility, these businesses have massive scale, recurring revenue models (cloud subscriptions, product ecosystem lock-in, global retail footprints), and huge stock buyback programs that act as price shock-absorbers.
+
+2. **The Intraday vs. Interday Swing Ratio**:
+   * For **Tesla (TSLA)** and **AMD**, the average intraday range is **4.2%**, but their daily close-to-close move is **~2.5-2.6%**. This implies that these assets experience heavy "noise" and trading volume *during* the trading day (day-trading momentum), where prices swing widely but often settle closer to the previous day's close.
+   * In contrast, mature assets like **Microsoft (MSFT)** have a very tight intraday swing (**1.9%**) and daily move (**1.18%**), indicating orderly, institutional trading flows with minimal speculative spikes.
+
+3. **Asymmetric Tail Risk (Extreme Earnings Gaps)**:
+   * Volatility is not always symmetrical. Looking at **Netflix (NFLX)** and **Meta (META)**, their maximum single-day drawdowns (**-35.12%** and **-26.39%** respectively) are significantly larger than their annualized volatility would predict. This points to the phenomenon of **"gap risk"**—where major growth revisions trigger massive capital re-allocations instantly, bypassing normal daily trading ranges. 
+:::
+
+---
+
+## Detailed Stock Ingestion Charts
+
+::: {.custom-card}
+Select a tab below to view interactive historical price and volume charting (10-year limit) for each company, styled similarly to NASDAQ's Advanced Charting interface.
+
+```{python}
+#| results: asis
+#| echo: false
+
+import os
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+downloads_dir = "downloads"
+ticker_names = {
+    "AAPL": "Apple (AAPL)",
+    "MSFT": "Microsoft (MSFT)",
+    "AMZN": "Amazon (AMZN)",
+    "TSLA": "Tesla (TSLA)",
+    "META": "Meta (META)",
+    "AMD": "AMD (AMD)",
+    "NFLX": "Netflix (NFLX)",
+    "SBUX": "Starbucks (SBUX)",
+    "CSCO": "Cisco (CSCO)",
+    "QCOM": "Qualcomm (QCOM)"
+}
+
+if os.path.exists(downloads_dir):
+    csv_files = sorted([f for f in os.listdir(downloads_dir) if f.endswith("_historical.csv")])
+    
+    if csv_files:
+        # Start Quarto Tabset
+        print("::: {.panel-tabset}")
+        
+        for file in csv_files:
+            ticker = file.replace("_historical.csv", "")
+            company_label = ticker_names.get(ticker, f"{ticker} Stock")
+            file_path = os.path.join(downloads_dir, file)
+            
+            # Read and parse CSV
+            df = pd.read_csv(file_path)
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.sort_values(by='date').reset_index(drop=True)
+            
+            # Identify volume direction colors (green for price gain, red for loss)
+            colors = []
+            prices = df['close'].values
+            for i in range(len(df)):
+                if i == 0:
+                    colors.append('#10b981')
+                else:
+                    if prices[i] >= prices[i-1]:
+                        colors.append('#10b981')
+                    else:
+                        colors.append('#ef4444')
+            
+            # Create subplots (Price top panel, Volume bottom panel)
+            fig = make_subplots(
+                rows=2, cols=1, 
+                shared_xaxes=True, 
+                vertical_spacing=0.05,
+                row_heights=[0.75, 0.25]
+            )
+            
+            # Add Area Chart for Price
+            fig.add_trace(
+                go.Scatter(
+                    x=df['date'], 
+                    y=df['close'],
+                    name="Close Price",
+                    line=dict(color="#38bdf8", width=2),
+                    fill="tozeroy",
+                    fillcolor="rgba(56, 189, 248, 0.1)",
+                    hovertemplate="Date: %{x|%Y-%m-%d}<br>Price: $%{y:.2f}<extra></extra>"
+                ),
+                row=1, col=1
+            )
+            
+            # Add Bar Chart for Volume
+            fig.add_trace(
+                go.Bar(
+                    x=df['date'], 
+                    y=df['volume'],
+                    name="Volume",
+                    marker=dict(color=colors, line=dict(width=0)),
+                    hovertemplate="Volume: %{y:,}<extra></extra>"
+                ),
+                row=2, col=1
+            )
+            
+            # Styling & Range Selectors
+            fig.update_layout(
+                template="plotly_dark",
+                height=550,
+                margin=dict(l=20, r=20, t=10, b=20),
+                showlegend=False,
+                hovermode="x unified",
+                xaxis2=dict(
+                    rangeslider=dict(visible=False),
+                    rangeselector=dict(
+                        buttons=list([
+                            dict(count=1, label="1Y", step="year", stepmode="backward"),
+                            dict(count=5, label="5Y", step="year", stepmode="backward"),
+                            dict(step="all", label="MAX (10Y)")
+                        ]),
+                        font=dict(color="#ffffff"),
+                        bgcolor="rgba(30, 41, 59, 0.8)",
+                        activecolor="#38bdf8"
+                    ),
+                    gridcolor="rgba(255, 255, 255, 0.05)"
+                ),
+                xaxis=dict(
+                    gridcolor="rgba(255, 255, 255, 0.05)"
+                ),
+                yaxis=dict(
+                    title="Stock Price ($)",
+                    side="right",
+                    gridcolor="rgba(255, 255, 255, 0.05)",
+                    tickprefix="$",
+                    tickformat=".2f"
+                ),
+                yaxis2=dict(
+                    title="Volume",
+                    gridcolor="rgba(255, 255, 255, 0.02)",
+                    showticklabels=False
+                ),
+                plot_bgcolor="#0f172a",
+                paper_bgcolor="#0b0f19"
+            )
+            
+            # Print the tab header for Quarto
+            print(f"### {company_label}\n")
+            
+            # Render and display the figure
+            fig.show()
+            print("\n")
+            
+        # End Quarto Tabset
+        print(":::")
+```
+:::
